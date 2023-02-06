@@ -2,11 +2,13 @@ package main
 
 import (
 	"go_test/club"
+	"go_test/club2"
+	"log"
 	"time"
 )
 
 // 协程+channel模拟: 同一时刻,100位玩家登录导致同一个工会的积分变化
-func main() {
+func clubTest() {
 	//启动一个协程,用于处理工会
 	clubServer := club.Server{}
 	clubServer.Init()
@@ -38,4 +40,27 @@ func main() {
 
 	}
 
+}
+
+func main() {
+	//clubTest()
+	club2Test()
+}
+
+// 创建一个ClubServer协程,并执行玩法
+func club2Test() {
+	//启动一个协程服务
+	club := club2.Club2{}
+	clubServer := club2.CreateClubServer(&club)
+
+	//通过两个channel堵塞实现的方式
+	req := club2.Request{}
+	clubServer.SendRequest(req)
+	createServerRes, error := clubServer.ReceiveResponse(req)
+	if error != nil {
+		log.Println("createServerRes has Error: ", error)
+	} else {
+		log.Println("createServerRes Result: ", createServerRes)
+	}
+	time.Sleep(time.Second * 10)
 }
