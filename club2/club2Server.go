@@ -75,12 +75,9 @@ func (s *Server) Run() {
 	}
 }
 
-func (s *Server) SendRequest(req Request) {
+func (s *Server) SendRequest(req Request) (Response, error) {
 	//简单验证Request
 	s.reqChan <- req
-}
-
-func (s *Server) ReceiveResponse(req Request) (Response, error) {
 	var isResponse = false
 	for {
 		select {

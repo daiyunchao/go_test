@@ -55,8 +55,7 @@ func club2Test() {
 
 	//通过两个channel堵塞实现的方式
 	req := club2.Request{}
-	clubServer.SendRequest(req)
-	createServerRes, error := clubServer.ReceiveResponse(req)
+	createServerRes, error := clubServer.SendRequest(req)
 	if error != nil {
 		log.Println("createServerRes has Error: ", error)
 	} else {
