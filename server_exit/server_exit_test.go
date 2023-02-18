@@ -58,7 +58,8 @@ func TestServerExit(t *testing.T) {
 // App
 type App struct {
 	signalCount int
-	signalChan  chan os.Signal //信号
+	signalChan  chan os.Signal //信号channel
+	exitChan    chan int       //退出channel
 	startWg     sync.WaitGroup
 	stopWg      sync.WaitGroup
 	servers     []IServer
@@ -68,6 +69,7 @@ func NewApp() *App {
 	return &App{
 		signalCount: 0,
 		signalChan:  make(chan os.Signal),
+		exitChan:    make(chan int),
 		servers:     make([]IServer, 0),
 	}
 }
@@ -87,24 +89,30 @@ func (app *App) AppStart() {
 	signal.Notify(app.signalChan, os.Interrupt, os.Kill, syscall.SIGUSR1, syscall.SIGUSR2)
 	for {
 		select {
-		case <-app.signalChan:
+		case signal := <-app.signalChan:
+			fmt.Println("signal:", signal)
 			app.signalCount += 1
 			if app.signalCount > 1 {
 				//强行退出
+				fmt.Println("强行退出")
 				return
 			}
-			//如果是第一次退出,则释放资源
-			//额外启动一个timer,如果时间到了还未退出则强行退出
-			time.AfterFunc(time.Second*30, func() {
-				fmt.Println("超时了,退出")
-				return
-			})
-			for _, server := range app.servers {
-				app.stopWg.Add(1)
-				go server.Stop(&app.stopWg)
-			}
-			app.stopWg.Wait()
-			fmt.Println("资源释放完毕可以退出了")
+			go func() {
+				time.AfterFunc(time.Second*30, func() {
+					fmt.Println("超时了,退出")
+					app.exitChan <- 1
+					return
+				})
+				for _, server := range app.servers {
+					app.stopWg.Add(1)
+					go server.Stop(&app.stopWg)
+				}
+				app.stopWg.Wait()
+				fmt.Println("资源释放完毕可以退出了")
+				app.exitChan <- 1
+			}()
+		case <-app.exitChan:
+			//退出
 			return
 		}
 	}
